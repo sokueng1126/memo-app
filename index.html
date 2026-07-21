@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>내 사진 분석기</title>
+    <style>
+        /* 전체 스타일 - 가운데 정렬과 배경색 */
+        body {
+            background-color: #F5F5DC;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        /* 제목 - 따뜻한 주황색 */
+        h1 {
+            color: #FF8C00;
+        }
+
+        /* 버튼 - 따뜻한 주황색 */
+        button {
+            background-color: #FF8C00;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        /* 버튼 호버 효과 */
+        button:hover {
+            background-color: #E67E22;
+        }
+
+        /* 입력 필드 스타일 */
+        input[type="text"], input[type="file"] {
+            padding: 8px;
+            margin: 5px;
+            border-radius: 3px;
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+    <h1>내 사진 분석기</h1>
+
+    <label>폴더 제목:</label>
+    <input type="text" placeholder="제목을 입력하세요">
+    <br><br>
+
+    <label>사진:</label>
+    <input type="file" accept="image/*">
+    <br><br>
+
+    <button id="objectBtn" onclick="searchObject()">물체 버튼</button>
+
+    <script>
+        function searchObject() {
+            const btn = document.getElementById('objectBtn');
+            btn.textContent = '잠깐만요, 분석할께요';
+        }
+    </script>
+
+</body>
+</html>

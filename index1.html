@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>강수경의 사진 분석기</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>강수경의 사진 분석기</h1>
+
+        <div class="input-group">
+            <label for="folderTitle">폴더 제목:</label>
+            <input type="text" id="folderTitle" placeholder="제목을 입력하세요">
+        </div>
+
+        <div class="input-group">
+            <label for="imageInput">사진:</label>
+            <input type="file" id="imageInput" accept="image/*" onchange="previewImage()">
+        </div>
+
+        <div class="preview-section" id="previewSection" style="display: none;">
+            <p>미리보기:</p>
+            <img id="imagePreview" alt="미리보기 이미지">
+            <div class="placeholder-box">
+                <p class="placeholder-text">분석 결과 박스가 이곳에 그려질 예정입니다</p>
+            </div>
+        </div>
+
+        <button id="objectBtn" onclick="analyzeObject()">물체 찾기</button>
+
+        <p class="notice-text">아직 분석 기능은 준비 중이에요</p>
+
+        <!-- 투두리스트 섹션 -->
+        <div class="todo-section">
+            <h2 class="todo-title">할 일 목록</h2>
+            <div class="todo-input-group">
+                <input type="text" id="todoInput" placeholder="할 일을 입력하세요" onkeypress="handleEnter(event)">
+                <button class="todo-add-btn" onclick="addTodo()">추가</button>
+            </div>
+            <ul id="todoList" class="todo-list">
+                <li class="todo-item">우유 사기</li>
+                <li class="todo-item">운동하기</li>
+            </ul>
+        </div>
+
+        <div class="result-section" id="resultSection" style="display: none;">
+            <p class="result-title">분석 결과:</p>
+            <div id="resultContent"></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+
+    <!-- 투두리스트 스크립트 -->
+    <script>
+        // 엔터키 처리 함수
+        function handleEnter(event) {
+            if (event.key === 'Enter') {
+                addTodo();
+            }
+        }
+
+        // 투두 추가 함수
+        function addTodo() {
+            const todoInput = document.getElementById('todoInput');
+            const todoList = document.getElementById('todoList');
+            const todoText = todoInput.value.trim();
+
+            // 빈칸인 경우 추가하지 않음
+            if (todoText === '') {
+                alert('내용을 입력해주세요!');
+                return;
+            }
+
+            // 새로운 li 요소 생성
+            const li = document.createElement('li');
+            li.className = 'todo-item';
+            li.textContent = todoText;
+
+            // 목록에 추가
+            todoList.appendChild(li);
+
+            // 입력칸 비우기
+            todoInput.value = '';
+
+            // 입력칸에 포커스
+            todoInput.focus();
+        }
+    </script>
+</body>
+</html>
