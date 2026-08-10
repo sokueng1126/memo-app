@@ -1,0 +1,35 @@
+# Arduino CLI 설정 파일
+# XIAO ESP32-C6용 설정
+
+board_manager:
+  additional_urls:
+    - https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+
+daemon:
+  port: "50051"
+
+directories:
+  data: .arduino15
+  downloads: .arduino15/staging
+  user: .arduino15/packages
+
+logging:
+  file: ""
+  format: text
+  level: info
+
+output:
+  no_color: false
+
+telemetry:
+  enable: false
+
+# XIAO ESP32-C6 기본 설정
+boards:
+  esp32c6:
+    fqbn: esp32:esp32:XIAO_ESP32C6
+    config:
+      psram: none
+      flash_size: 4MB
+      flash_mode: qio
+      cpu_freq: 160
