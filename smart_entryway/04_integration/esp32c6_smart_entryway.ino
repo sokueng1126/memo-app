@@ -1,25 +1,31 @@
 /**
- * XIAO ESP32-C6 스마트 현관 외출 비서 (통합 테스트)
+ * XIAO ESP32-C6 스마트 현관 외출 비서 (통합 테스트 - 수정 완료)
  * "아차, 우산!" AI 기반 외출 알림 시스템 (ESP32-C6 버전)
  *
  * 기능:
  * 1. Wi-Fi 연결 및 날씨 API (KMA) 확인
- * 2. PIR 센서로 사람 감지 (선택사항)
+ * 2. PIR 센서로 사람 감지 (GPIO 1)
  * 3. Mock 객체 인식 (ESP32-C6는 카메라/PSRAM 없음)
  * 4. 로직: 비가 오는데 우산 없음 → 빨간 LED + 부저 경고
  * 5. 우산 챙김 → 초록 LED + 기분 좋은 알림음
  * 6. MQTT로 상태 전송
  * 7. Claude API로 알림 문구 생성 (Mock)
  *
- * 하드웨어:
+ * 하드웨어 (수정 완료):
  * - XIAO ESP32-C6 (RISC-V 듀얼 코어, 512KB SRAM, 4MB Flash)
  * - 내장 LED (GPIO 15): 빨간색/초록색 표시
- * - 부저 (GPIO 16): 경고음/알림음 (PWM)
- * - PIR 센서 (GPIO 17): 사람 감지 (선택사항)
+ * - 부저 (GPIO 21, D3): 경고음/알림음 (PWM)
+ * - PIR 센서 (GPIO 1, D1): 사람 감지
  *
- * 참고: ESP32-C6는 내장 카메라와 PSRAM이 없어서
- * 실제 객체 인식은 외장 카메라 + 별도 AI 모듈 필요
- * 이 코드는 시연용 Mock을 사용합니다
+ * 핀 맵 (수정 완료):
+ * - GPIO 15: 내장 LED ✓
+ * - GPIO 16: UART0 TX (시리얼 통신용) ⚠ 사용 금지
+ * - GPIO 17: UART0 RX (시리얼 통신용) ⚠ 사용 금지
+ * - GPIO 1: PIR 센서 ✓
+ * - GPIO 21: 부저 ✓
+ *
+ * 참고: GPIO 16, 17은 UART0 기본 핀으로 사용됩니다
+ * 부저/PIR 센서에는 GPIO 1, 21 등 일반 GPIO를 사용해야 합니다
  */
 
 #include <WiFi.h>
@@ -39,10 +45,15 @@ const char* mqtt_topic_detection = "PSEE/entryway/detection";
 const char* mqtt_topic_alert = "PSEE/entryway/alert";
 const char* mqtt_topic_llm = "PSEE/entryway/llm_message";
 
-// ========== 하드웨어 핀 (ESP32-C6) ==========
-#define USER_LED 15
-#define BUZZER_PIN 16
-#define PIR_SENSOR 17  // 선택사항
+// ========== 하드웨어 핀 (ESP32-C6 수정 완료) ==========
+#define USER_LED 15      // 내장 LED (GPIO 15)
+#define BUZZER_PIN 21    // 부저 (GPIO 21, D3) - UART 핀 회피
+#define PIR_SENSOR 1     // PIR 센서 (GPIO 1, D1) - UART 핀 회피
+
+// UART0 기본 핀 (시리얼 통신용):
+// GPIO 16: TX (송신) - 사용 금지!
+// GPIO 17: RX (수신) - 사용 금지!
+// 부저/PIR 센서에는 GPIO 1, 21 등 일반 GPIO 사용
 
 // ========== 시연 모드 설정 ==========
 #define DEMO_MODE  true  // true: 시연용 Mock 사용, false: PIR 센서 사용
@@ -67,9 +78,9 @@ bool personDetected = false;
 bool umbrellaDetected = false;
 
 // 시연용 강제 날씨 설정 (DEMO_MODE가 true일 때만 사용)
-bool demoRaining = true;  // 시연용: 비 오는 상태 강제
-bool demoPersonDetected = true;  // 시연용: 사람 감지 강제
-bool demoUmbrellaDetected = false;  // 시연용: 우산 없음 강제 (시나리오 1)
+bool demoRaining = true;           // 시연용: 비 오는 상태 강제
+bool demoPersonDetected = true;    // 시연용: 사람 감지 강제
+bool demoUmbrellaDetected = false; // 시연용: 우산 없음 강제 (시나리오 1)
 
 // LED/부저 상태
 unsigned long lastAlertTime = 0;
@@ -120,15 +131,23 @@ void setup() {
 
   // 시스템 준비 상태 출력
   Serial.println("\n════════════════════════════════════════════════");
-  Serial.println("시스템 상태 요약:");
+  Serial.println("시스템 상태 요약 (수정 완료):");
   Serial.printf("  보드: XIAO ESP32-C6 (RISC-V)\n");
   Serial.printf("  메모리: SRAM %dKB, Flash %dMB\n",
                 ESP.getHeapSize() / 1024, ESP.getFlashChipSize() / (1024 * 1024));
   Serial.printf("  Wi-Fi: %s\n", wifiConnected ? "✓ 연결됨" : "✗ 연결 실패");
   Serial.printf("  MQTT: %s\n", mqttConnected ? "✓ 연결됨" : "✗ 연결 실패");
-  Serial.printf("  PIR 센서: %s\n", pirSensorReady ? "✓ 준비됨" : "✗ 사용 안 함");
+  Serial.printf("  PIR 센서: %s (GPIO %d)\n", pirSensorReady ? "✓ 준비됨" : "✗ 사용 안 함", PIR_SENSOR);
+  Serial.printf("  부저: GPIO %d (D3)\n", BUZZER_PIN);
   Serial.printf("  시연 모드: %s\n", DEMO_MODE ? "ON (Mock)" : "OFF (실제 센서)");
   Serial.println("════════════════════════════════════════════════\n");
+
+  Serial.println("⚠ 핀 할당 (수정 완료):");
+  Serial.println("  - GPIO 15: 내장 LED ✓");
+  Serial.println("  - GPIO 16: UART0 TX (시리얼 통신용) - 사용 금지!");
+  Serial.println("  - GPIO 17: UART0 RX (시리얼 통신용) - 사용 금지!");
+  Serial.println("  - GPIO 1: PIR 센서 (D1) ✓");
+  Serial.println("  - GPIO 21: 부저 (D3) ✓\n");
 
   if (wifiConnected && mqttConnected) {
     Serial.println("✓ 모든 시스템 준비 완료!\n");
@@ -196,7 +215,7 @@ void loop() {
         umbrellaDetected = false;  // PIR은 사람만 감지
 
         Serial.println("────────────────────────────────────────────────");
-        Serial.println("객체 감지 (PIR 센서):");
+        Serial.println("객체 감지 (PIR 센서 - GPIO 1):");
         Serial.printf("  사람 감지: %s\n", personDetected ? "예" : "아니오");
         Serial.println("────────────────────────────────────────────────\n");
       }
@@ -281,30 +300,32 @@ void setup_hardware() {
   pinMode(USER_LED, OUTPUT);
   digitalWrite(USER_LED, LOW);  // 초기: 초록색
 
-  // 부저 (GPIO 16, PWM)
+  // 부저 (GPIO 21, PWM)
   ledcSetup(0, 2000, 8);  // 채널 0, 2000Hz, 8비트 해상도
   ledcAttachPin(BUZZER_PIN, 0);
   ledcWrite(0, 0);  // 초기: 꺼짐
 
   Serial.println("════════════════════════════════════════════════");
-  Serial.println("하드웨어 초기화");
+  Serial.println("하드웨어 초기화 (수정 완료)");
   Serial.println("════════════════════════════════════════════════");
   Serial.printf("  내장 LED: GPIO %d\n", USER_LED);
-  Serial.printf("  부저: GPIO %d\n", BUZZER_PIN);
+  Serial.printf("  부저: GPIO %d (D3)\n", BUZZER_PIN);
+  Serial.printf("  PIR 센서: GPIO %d (D1) %s\n", PIR_SENSOR, pirSensorReady ? "✓ 준비됨" : "사용 안 함");
+  Serial.printf("  UART0: GPIO 16(TX), 17(RX) - 시리얼 통신용 (사용 금지)\n");
   Serial.println("════════════════════════════════════════════════\n");
 }
 
 // ========== PIR 센서 설정 ==========
 void setup_pir_sensor() {
   Serial.println("════════════════════════════════════════════════");
-  Serial.println("PIR 센서 초기화");
+  Serial.println("PIR 센서 초기화 (수정 완료)");
   Serial.println("════════════════════════════════════════════════");
 
   pinMode(PIR_SENSOR, INPUT);
   pirSensorReady = true;
 
-  Serial.printf("  PIR 센서: GPIO %d\n", PIR_SENSOR);
   Serial.println("✓ PIR 센서 준비 완료!");
+  Serial.printf("  PIR 센서: GPIO %d (D1)\n", PIR_SENSOR);
   Serial.println("════════════════════════════════════════════════\n");
 }
 
@@ -406,7 +427,7 @@ void publish_detection() {
   StaticJsonDocument<200> doc;
   doc["person_detected"] = personDetected;
   doc["umbrella_detected"] = umbrellaDetected;
-  doc["method"] = DEMO_MODE ? "mock" : (USE_PIR_SENSOR ? "pir_sensor" : "none");
+  doc["method"] = DEMO_MODE ? "mock" : (USE_PIR_SENSOR ? "pir_sensor_gpio1" : "none");
   doc["device"] = "XIAO-ESP32C6";
   doc["timestamp"] = millis();
 

@@ -1,4 +1,4 @@
-# 스마트 현관 외출 비서 "아차, 우산!" (ESP32-C6 버전)
+# 스마트 현관 외출 비서 "아차, 우산!" (ESP32-C6 버전 - 수정 완료)
 
 ![GitHub](https://img.shields.io/badge/Platform-ESP32--C6-orange)
 ![License](https://img.shields.io/badge/License-MIT-green)
